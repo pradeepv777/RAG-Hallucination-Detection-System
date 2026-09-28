@@ -108,44 +108,65 @@ class FaithfulnessScorer:
                 neutral_prob=1.0,
             )
 
-        # 1. Check for contradiction first across all retrieved chunks
-        contradicting_chunks = [
-            cv for cv in chunk_verifications
-            if cv.get("contradiction_prob", 0.0) >= self.contradiction_threshold
-        ]
-        if contradicting_chunks:
-            # Select the chunk with the highest contradiction confidence
-            best = max(contradicting_chunks, key=lambda x: x.get("contradiction_prob", 0.0))
-            return ClaimResult(
-                claim_id=claim_id,
-                claim=claim_text,
-                verdict="contradicted",
-                score=best.get("contradiction_prob", 0.0),
-                evidence=best.get("evidence", ""),
-                evidence_similarity=best.get("evidence_similarity", 0.0),
-                entailment_prob=best.get("entailment_prob", 0.0),
-                contradiction_prob=best.get("contradiction_prob", 0.0),
-                neutral_prob=best.get("neutral_prob", 0.0),
-            )
-
-        # 2. Check for entailment (support) across all chunks
+        # Evaluate supporting vs contradicting evidence:
+        # A claim is SUPPORTED if any retrieved chunk directly entails it
         supporting_chunks = [
             cv for cv in chunk_verifications
             if cv.get("entailment_prob", 0.0) >= self.entailment_threshold
         ]
+
+        contradicting_chunks = [
+            cv for cv in chunk_verifications
+            if cv.get("contradiction_prob", 0.0) >= self.contradiction_threshold
+        ]
+
+        # If a chunk directly entails the claim, verify if it's the strongest signal
         if supporting_chunks:
-            # Select the chunk with the highest entailment confidence
-            best = max(supporting_chunks, key=lambda x: x.get("entailment_prob", 0.0))
+            best_support = max(supporting_chunks, key=lambda x: x.get("entailment_prob", 0.0))
+            
+            # Check if there is a genuine direct conflict that has higher semantic relevance
+            if contradicting_chunks:
+                best_contra = max(contradicting_chunks, key=lambda x: x.get("contradiction_prob", 0.0))
+                # Only flag as contradiction if the contradictory chunk is more relevant or has higher contradiction
+                if best_contra.get("evidence_similarity", 0.0) > best_support.get("evidence_similarity", 0.0) and best_contra.get("contradiction_prob", 0.0) > best_support.get("entailment_prob", 0.0):
+                    return ClaimResult(
+                        claim_id=claim_id,
+                        claim=claim_text,
+                        verdict="contradicted",
+                        score=best_contra.get("contradiction_prob", 0.0),
+                        evidence=best_contra.get("evidence", ""),
+                        evidence_similarity=best_contra.get("evidence_similarity", 0.0),
+                        entailment_prob=best_contra.get("entailment_prob", 0.0),
+                        contradiction_prob=best_contra.get("contradiction_prob", 0.0),
+                        neutral_prob=best_contra.get("neutral_prob", 0.0),
+                    )
+
+            # Grounded by supporting chunk
             return ClaimResult(
                 claim_id=claim_id,
                 claim=claim_text,
                 verdict="supported",
-                score=best.get("entailment_prob", 0.0),
-                evidence=best.get("evidence", ""),
-                evidence_similarity=best.get("evidence_similarity", 0.0),
-                entailment_prob=best.get("entailment_prob", 0.0),
-                contradiction_prob=best.get("contradiction_prob", 0.0),
-                neutral_prob=best.get("neutral_prob", 0.0),
+                score=best_support.get("entailment_prob", 0.0),
+                evidence=best_support.get("evidence", ""),
+                evidence_similarity=best_support.get("evidence_similarity", 0.0),
+                entailment_prob=best_support.get("entailment_prob", 0.0),
+                contradiction_prob=best_support.get("contradiction_prob", 0.0),
+                neutral_prob=best_support.get("neutral_prob", 0.0),
+            )
+
+        # If not supported, check if any chunk contradicts it
+        if contradicting_chunks:
+            best_contra = max(contradicting_chunks, key=lambda x: x.get("contradiction_prob", 0.0))
+            return ClaimResult(
+                claim_id=claim_id,
+                claim=claim_text,
+                verdict="contradicted",
+                score=best_contra.get("contradiction_prob", 0.0),
+                evidence=best_contra.get("evidence", ""),
+                evidence_similarity=best_contra.get("evidence_similarity", 0.0),
+                entailment_prob=best_contra.get("entailment_prob", 0.0),
+                contradiction_prob=best_contra.get("contradiction_prob", 0.0),
+                neutral_prob=best_contra.get("neutral_prob", 0.0),
             )
 
         # 3. Otherwise unsupported / neutral

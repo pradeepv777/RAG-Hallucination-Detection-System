@@ -1,0 +1,35 @@
+# Git & planning files
+.git
+.gitignore
+.planning/
+
+# Python caches & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & IDE configs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Large dataset raw files (only copy if explicitly needed inside container)
+# In production, datasets are not bundled into the serving image
+exp/
+*.log
+prediction*.jsonl
+
+# Model caches & secrets
+.cache/
+hf_cache/
+.env
+.env.*
+secrets.json
+Notes/

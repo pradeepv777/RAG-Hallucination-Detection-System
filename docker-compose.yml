@@ -1,0 +1,32 @@
+services:
+  # FastAPI Verification Microservice
+  api:
+    build: .
+    container_name: rag-detector-api
+    ports:
+      - "8000:8000"
+    command: uvicorn app:app --host 0.0.0.0 --port 8000
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  # Streamlit Interactive Dashboard
+  ui:
+    build: .
+    container_name: rag-detector-ui
+    ports:
+      - "8501:8501"
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    depends_on:
+      - api
+    restart: unless-stopped
+
+# Shared cache volume to avoid re-downloading Hugging Face models
+volumes:
+  hf-cache:

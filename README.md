@@ -150,8 +150,16 @@ Provides an interactive interface with preloaded RAGTruth benchmark presets, con
 
 ---
 
-## Docker
+## Docker & Docker Compose
 
+### Option 1: Docker Compose (Runs API + Streamlit together)
+```bash
+docker compose up --build
+```
+- **FastAPI API**: `http://localhost:8000` (Docs: `http://localhost:8000/docs`)
+- **Streamlit Dashboard**: `http://localhost:8501`
+
+### Option 2: Docker CLI
 ```bash
 docker build -t rag-hallucination-detector .
 docker run -p 8000:8000 rag-hallucination-detector

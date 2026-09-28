@@ -13,7 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# 1. Install lightweight PyTorch CPU build (~180 MB instead of ~2.8 GB CUDA wheels)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# 2. Install remaining project dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
