@@ -1,0 +1,156 @@
+{
+  "embedding_similarity": {
+    "elapsed_seconds": 26.91,
+    "answer_metrics": {
+      "overall": {
+        "method": "embedding_similarity",
+        "level": "answer",
+        "task": "overall",
+        "total_samples": 100,
+        "precision": 0.4149,
+        "recall": 0.975,
+        "f1": 0.5821,
+        "accuracy": 0.44,
+        "tp": 39,
+        "fp": 55,
+        "fn": 1,
+        "tn": 5
+      },
+      "by_task": {
+        "QA": {
+          "method": "embedding_similarity",
+          "level": "answer",
+          "task": "QA",
+          "total_samples": 28,
+          "precision": 0.2083,
+          "recall": 1.0,
+          "f1": 0.3448,
+          "accuracy": 0.3214,
+          "tp": 5,
+          "fp": 19,
+          "fn": 0,
+          "tn": 4
+        },
+        "Summary": {
+          "method": "embedding_similarity",
+          "level": "answer",
+          "task": "Summary",
+          "total_samples": 37,
+          "precision": 0.2571,
+          "recall": 0.9,
+          "f1": 0.4,
+          "accuracy": 0.2703,
+          "tp": 9,
+          "fp": 26,
+          "fn": 1,
+          "tn": 1
+        },
+        "Data2txt": {
+          "method": "embedding_similarity",
+          "level": "answer",
+          "task": "Data2txt",
+          "total_samples": 35,
+          "precision": 0.7143,
+          "recall": 1.0,
+          "f1": 0.8333,
+          "accuracy": 0.7143,
+          "tp": 25,
+          "fp": 10,
+          "fn": 0,
+          "tn": 0
+        }
+      }
+    },
+    "claim_metrics": {
+      "method": "embedding_similarity",
+      "level": "claim",
+      "task": "overall",
+      "total_samples": 648,
+      "precision": 0.1338,
+      "recall": 0.8462,
+      "f1": 0.2311,
+      "accuracy": 0.4352,
+      "tp": 55,
+      "fp": 356,
+      "fn": 10,
+      "tn": 227
+    }
+  },
+  "nli": {
+    "elapsed_seconds": 483.88,
+    "answer_metrics": {
+      "overall": {
+        "method": "nli",
+        "level": "answer",
+        "task": "overall",
+        "total_samples": 100,
+        "precision": 0.4301,
+        "recall": 1.0,
+        "f1": 0.6015,
+        "accuracy": 0.47,
+        "tp": 40,
+        "fp": 53,
+        "fn": 0,
+        "tn": 7
+      },
+      "by_task": {
+        "QA": {
+          "method": "nli",
+          "level": "answer",
+          "task": "QA",
+          "total_samples": 28,
+          "precision": 0.2174,
+          "recall": 1.0,
+          "f1": 0.3571,
+          "accuracy": 0.3571,
+          "tp": 5,
+          "fp": 18,
+          "fn": 0,
+          "tn": 5
+        },
+        "Summary": {
+          "method": "nli",
+          "level": "answer",
+          "task": "Summary",
+          "total_samples": 37,
+          "precision": 0.2857,
+          "recall": 1.0,
+          "f1": 0.4444,
+          "accuracy": 0.3243,
+          "tp": 10,
+          "fp": 25,
+          "fn": 0,
+          "tn": 2
+        },
+        "Data2txt": {
+          "method": "nli",
+          "level": "answer",
+          "task": "Data2txt",
+          "total_samples": 35,
+          "precision": 0.7143,
+          "recall": 1.0,
+          "f1": 0.8333,
+          "accuracy": 0.7143,
+          "tp": 25,
+          "fp": 10,
+          "fn": 0,
+          "tn": 0
+        }
+      }
+    },
+    "claim_metrics": {
+      "method": "nli",
+      "level": "claim",
+      "task": "overall",
+      "total_samples": 648,
+      "precision": 0.1398,
+      "recall": 0.8,
+      "f1": 0.238,
+      "accuracy": 0.4861,
+      "tp": 52,
+      "fp": 320,
+      "fn": 13,
+      "tn": 263
+    }
+  }
+}
