@@ -1,72 +1,27 @@
-# ==============================================================================
-# Git Ignore for RAG Hallucination Detection System
-# ==============================================================================
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
-# Python virtual environments
+# Virtual environments
 venv/
 .venv/
 env/
-ENV/
-env.bak/
-venv.bak/
 
-# Testing & Coverage
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-nosetests.xml
-coverage.xml
-*.cover
-
-# IDEs & Editors
+# IDE & OS files
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-*~
-
-# Operating System files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-desktop.ini
 
-# Hugging Face, PyTorch & Vector caches
+# Hugging Face & PyTorch caches
 .cache/
 hf_cache/
-*.pt
-*.bin
-*.safetensors
-*.onnx
 
-# Experiment outputs, scratch scripts & logs
+# Experiment outputs & large prediction dumps
 *.log
+prediction.jsonl
 exp/
-prediction*.jsonl
-*.tmp
-scratch/
 
-# Generated baseline files (if created)
-baseline/train.jsonl
-baseline/dev.jsonl
-baseline/test.jsonl
-baseline/prediction.jsonl
-
-# Environment variables & secrets
+# Secrets
 .env
-.env.*
-!.env.example
-secrets.json
