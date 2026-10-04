@@ -5,12 +5,15 @@ Indexes source context chunks using sentence-transformers and FAISS,
 and retrieves the top-k most semantically relevant evidence chunks for each claim.
 """
 
+import re
 from typing import Any, Dict, List, Optional
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 
 from claims import split_into_sentences, clean_text
+
+PASSAGE_SPLIT_PATTERN = re.compile(r"(?:passage\s+\d+:\s*)", flags=re.IGNORECASE)
 
 
 class ContextChunker:
@@ -32,8 +35,7 @@ class ContextChunker:
 
         # Check if already partitioned into explicit passage markers (common in RAG benchmarks)
         if "passage " in context.lower():
-            import re
-            parts = re.split(r"(?:passage\s+\d+:\s*)", context, flags=re.IGNORECASE)
+            parts = PASSAGE_SPLIT_PATTERN.split(context)
             passages = [clean_text(p) for p in parts if clean_text(p)]
             if len(passages) > 1:
                 return passages
@@ -163,31 +165,53 @@ class EvidenceRetriever:
             Enriched list of claims, each with an 'evidence' key containing top-k chunks.
         """
         chunks = self.chunker.chunk(context)
-        if not chunks:
-            return [
-                {
-                    **c,
-                    "evidence_chunks": [],
-                    "top_evidence": "",
-                    "top_similarity": 0.0,
-                }
-                for c in claims
-            ]
+        empty_defaults = [
+            {
+                **c,
+                "evidence_chunks": [],
+                "top_evidence": "",
+                "top_similarity": 0.0,
+            }
+            for c in claims
+        ]
+        if not chunks or not claims:
+            return empty_defaults
 
         index, _ = self.build_index(chunks)
-        enriched = []
+        if index is None:
+            return empty_defaults
 
-        for c in claims:
-            claim_text = c.get("claim", "")
-            evidence_chunks = self.retrieve_for_claim(claim_text, chunks, index, top_k=top_k)
-            top_evidence = evidence_chunks[0]["evidence"] if evidence_chunks else ""
-            top_similarity = evidence_chunks[0]["similarity"] if evidence_chunks else 0.0
+        claim_texts = [c.get("claim", "") for c in claims]
+        valid_indices = [i for i, t in enumerate(claim_texts) if t and t.strip()]
+        if not valid_indices:
+            return empty_defaults
 
-            enriched.append({
-                **c,
-                "evidence_chunks": evidence_chunks,
-                "top_evidence": top_evidence,
-                "top_similarity": top_similarity,
-            })
+        k = min(top_k, len(chunks))
+        valid_texts = [claim_texts[i] for i in valid_indices]
+
+        # Vectorized batch encoding and single matrix search in FAISS
+        claim_embeddings = self.model.encode(
+            valid_texts, show_progress_bar=False, convert_to_numpy=True
+        ).astype(np.float32)
+        faiss.normalize_L2(claim_embeddings)
+        all_sims, all_idxs = index.search(claim_embeddings, k)
+
+        enriched = list(empty_defaults)
+        for batch_pos, orig_idx in enumerate(valid_indices):
+            ev_chunks = [
+                {
+                    "chunk_id": int(ch_idx),
+                    "evidence": chunks[ch_idx],
+                    "similarity": round(float(sim), 4),
+                }
+                for sim, ch_idx in zip(all_sims[batch_pos], all_idxs[batch_pos])
+                if 0 <= ch_idx < len(chunks)
+            ]
+            enriched[orig_idx] = {
+                **claims[orig_idx],
+                "evidence_chunks": ev_chunks,
+                "top_evidence": ev_chunks[0]["evidence"] if ev_chunks else "",
+                "top_similarity": ev_chunks[0]["similarity"] if ev_chunks else 0.0,
+            }
 
         return enriched

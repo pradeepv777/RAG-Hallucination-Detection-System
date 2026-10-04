@@ -71,6 +71,12 @@ class NLIVerifier:
                 "neutral": 2,
             }
 
+        self._indices = (
+            self._label_mapping.get("entailment", 1),
+            self._label_mapping.get("contradiction", 0),
+            self._label_mapping.get("neutral", 2),
+        )
+
     def verify_pairs(self, premise_hypothesis_pairs: List[tuple[str, str]]) -> List[Dict[str, float]]:
         """
         Runs batch inference over (premise, hypothesis) pairs.
@@ -95,20 +101,16 @@ class NLIVerifier:
             logits = np.expand_dims(logits, axis=0)
 
         probs = softmax(logits, axis=-1)
+        ent_idx, con_idx, neu_idx = self._indices
 
-        ent_idx = self._label_mapping.get("entailment", 1)
-        con_idx = self._label_mapping.get("contradiction", 0)
-        neu_idx = self._label_mapping.get("neutral", 2)
-
-        results = []
-        for p in probs:
-            results.append({
+        return [
+            {
                 "entailment_prob": round(float(p[ent_idx]), 4),
                 "contradiction_prob": round(float(p[con_idx]), 4),
                 "neutral_prob": round(float(p[neu_idx]), 4),
-            })
-
-        return results
+            }
+            for p in probs
+        ]
 
     def verify_claims(
         self,

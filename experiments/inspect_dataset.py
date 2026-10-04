@@ -3,8 +3,10 @@ from collections import Counter
 from pathlib import Path
 
 def inspect():
-    resp_path = Path("dataset/response.jsonl")
-    src_path = Path("dataset/source_info.jsonl")
+    root = Path(__file__).resolve().parent.parent
+    data_dir = root / "dataset" if (root / "dataset").exists() else Path("dataset")
+    resp_path = data_dir / "response.jsonl"
+    src_path = data_dir / "source_info.jsonl"
 
     print("=== INSPECTING RAGTRUTH DATASET ===")
     

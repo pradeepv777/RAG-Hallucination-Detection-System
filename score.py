@@ -78,110 +78,86 @@ class FaithfulnessScorer:
         self.contradiction_threshold = contradiction_threshold
         self.faithfulness_threshold = faithfulness_threshold
 
+    @staticmethod
+    def _create_claim_result(
+        claim_id: int,
+        claim: str,
+        verdict: str,
+        score: float,
+        chunk: Optional[Dict[str, Any]] = None,
+    ) -> ClaimResult:
+        ch = chunk or {}
+        return ClaimResult(
+            claim_id=claim_id,
+            claim=claim,
+            verdict=verdict,
+            score=score,
+            evidence=ch.get("evidence", ""),
+            evidence_similarity=ch.get("evidence_similarity", 0.0),
+            entailment_prob=ch.get("entailment_prob", 0.0),
+            contradiction_prob=ch.get("contradiction_prob", 0.0),
+            neutral_prob=ch.get("neutral_prob", 1.0 if not ch else 0.0),
+        )
+
+    @staticmethod
+    def _empty_report(notes: List[str]) -> FaithfulnessReport:
+        return FaithfulnessReport(
+            total_claims=0,
+            supported_claims=0,
+            contradicted_claims=0,
+            unsupported_claims=0,
+            faithfulness_score=1.0,
+            is_faithful=True,
+            is_hallucinated=False,
+            claims=[],
+            notes=notes,
+        )
+
     def resolve_claim_verdict(self, verified_claim: Dict[str, Any]) -> ClaimResult:
         """
         Resolves the final verdict for a claim across its top-k verified evidence chunks.
-
-        Decision Logic:
-        1. If ANY chunk has contradiction_prob >= contradiction_threshold:
-           -> 'contradicted' (direct factual conflict takes priority)
-        2. Else if ANY chunk has entailment_prob >= entailment_threshold:
-           -> 'supported' (sufficient grounding found)
-        3. Otherwise:
-           -> 'unsupported' (neutral or lack of evidence in context)
         """
         claim_id = verified_claim.get("claim_id", 0)
         claim_text = verified_claim.get("claim", "")
         chunk_verifications = verified_claim.get("verifications", [])
 
         if not chunk_verifications:
-            # No evidence was retrieved (e.g. empty context)
-            return ClaimResult(
-                claim_id=claim_id,
-                claim=claim_text,
-                verdict="unsupported",
-                score=0.0,
-                evidence="",
-                evidence_similarity=0.0,
-                entailment_prob=0.0,
-                contradiction_prob=0.0,
-                neutral_prob=1.0,
-            )
+            return self._create_claim_result(claim_id, claim_text, "unsupported", 0.0)
 
-        # Evaluate supporting vs contradicting evidence:
-        # A claim is SUPPORTED if any retrieved chunk directly entails it
         supporting_chunks = [
             cv for cv in chunk_verifications
             if cv.get("entailment_prob", 0.0) >= self.entailment_threshold
         ]
-
         contradicting_chunks = [
             cv for cv in chunk_verifications
             if cv.get("contradiction_prob", 0.0) >= self.contradiction_threshold
         ]
 
-        # If a chunk directly entails the claim, verify if it's the strongest signal
         if supporting_chunks:
             best_support = max(supporting_chunks, key=lambda x: x.get("entailment_prob", 0.0))
-            
-            # Check if there is a genuine direct conflict that has higher semantic relevance
             if contradicting_chunks:
                 best_contra = max(contradicting_chunks, key=lambda x: x.get("contradiction_prob", 0.0))
-                # Only flag as contradiction if the contradictory chunk is more relevant or has higher contradiction
-                if best_contra.get("evidence_similarity", 0.0) > best_support.get("evidence_similarity", 0.0) and best_contra.get("contradiction_prob", 0.0) > best_support.get("entailment_prob", 0.0):
-                    return ClaimResult(
-                        claim_id=claim_id,
-                        claim=claim_text,
-                        verdict="contradicted",
-                        score=best_contra.get("contradiction_prob", 0.0),
-                        evidence=best_contra.get("evidence", ""),
-                        evidence_similarity=best_contra.get("evidence_similarity", 0.0),
-                        entailment_prob=best_contra.get("entailment_prob", 0.0),
-                        contradiction_prob=best_contra.get("contradiction_prob", 0.0),
-                        neutral_prob=best_contra.get("neutral_prob", 0.0),
+                if (
+                    best_contra.get("evidence_similarity", 0.0) > best_support.get("evidence_similarity", 0.0)
+                    and best_contra.get("contradiction_prob", 0.0) > best_support.get("entailment_prob", 0.0)
+                ):
+                    return self._create_claim_result(
+                        claim_id, claim_text, "contradicted", best_contra.get("contradiction_prob", 0.0), best_contra
                     )
 
-            # Grounded by supporting chunk
-            return ClaimResult(
-                claim_id=claim_id,
-                claim=claim_text,
-                verdict="supported",
-                score=best_support.get("entailment_prob", 0.0),
-                evidence=best_support.get("evidence", ""),
-                evidence_similarity=best_support.get("evidence_similarity", 0.0),
-                entailment_prob=best_support.get("entailment_prob", 0.0),
-                contradiction_prob=best_support.get("contradiction_prob", 0.0),
-                neutral_prob=best_support.get("neutral_prob", 0.0),
+            return self._create_claim_result(
+                claim_id, claim_text, "supported", best_support.get("entailment_prob", 0.0), best_support
             )
 
-        # If not supported, check if any chunk contradicts it
         if contradicting_chunks:
             best_contra = max(contradicting_chunks, key=lambda x: x.get("contradiction_prob", 0.0))
-            return ClaimResult(
-                claim_id=claim_id,
-                claim=claim_text,
-                verdict="contradicted",
-                score=best_contra.get("contradiction_prob", 0.0),
-                evidence=best_contra.get("evidence", ""),
-                evidence_similarity=best_contra.get("evidence_similarity", 0.0),
-                entailment_prob=best_contra.get("entailment_prob", 0.0),
-                contradiction_prob=best_contra.get("contradiction_prob", 0.0),
-                neutral_prob=best_contra.get("neutral_prob", 0.0),
+            return self._create_claim_result(
+                claim_id, claim_text, "contradicted", best_contra.get("contradiction_prob", 0.0), best_contra
             )
 
-        # 3. Otherwise unsupported / neutral
-        # Pick the chunk with highest semantic similarity to show what was found
         best = max(chunk_verifications, key=lambda x: x.get("evidence_similarity", 0.0))
-        return ClaimResult(
-            claim_id=claim_id,
-            claim=claim_text,
-            verdict="unsupported",
-            score=best.get("neutral_prob", 0.0),
-            evidence=best.get("evidence", ""),
-            evidence_similarity=best.get("evidence_similarity", 0.0),
-            entailment_prob=best.get("entailment_prob", 0.0),
-            contradiction_prob=best.get("contradiction_prob", 0.0),
-            neutral_prob=best.get("neutral_prob", 0.0),
+        return self._create_claim_result(
+            claim_id, claim_text, "unsupported", best.get("neutral_prob", 0.0), best
         )
 
     def score(
@@ -195,45 +171,21 @@ class FaithfulnessScorer:
         """
         notes = []
 
-        # Edge case: Empty answer
         if not raw_answer or not raw_answer.strip():
             notes.append("Empty response provided.")
-            return FaithfulnessReport(
-                total_claims=0,
-                supported_claims=0,
-                contradicted_claims=0,
-                unsupported_claims=0,
-                faithfulness_score=1.0,
-                is_faithful=True,
-                is_hallucinated=False,
-                claims=[],
-                notes=notes,
-            )
+            return self._empty_report(notes)
 
-        # Edge case: Empty context
         if not raw_context or not raw_context.strip():
             notes.append("Empty context provided; all claims treated as unsupported.")
 
         claim_results: List[ClaimResult] = [
             self.resolve_claim_verdict(vc) for vc in verified_claims
         ]
-
         total_claims = len(claim_results)
 
-        # Edge case: No factual claims extracted (e.g. greeting or conversational acknowledgment)
         if total_claims == 0:
             notes.append("No verifiable factual claims detected in response.")
-            return FaithfulnessReport(
-                total_claims=0,
-                supported_claims=0,
-                contradicted_claims=0,
-                unsupported_claims=0,
-                faithfulness_score=1.0,
-                is_faithful=True,
-                is_hallucinated=False,
-                claims=[],
-                notes=notes,
-            )
+            return self._empty_report(notes)
 
         supported_count = sum(1 for c in claim_results if c.verdict == "supported")
         contradicted_count = sum(1 for c in claim_results if c.verdict == "contradicted")

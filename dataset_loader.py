@@ -8,8 +8,8 @@ splits and deriving clean answer-level and claim-level ground truth labels.
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+import random
 from typing import Any, Dict, List, Optional, Union
-import pandas as pd
 
 
 @dataclass
@@ -103,11 +103,9 @@ class RAGTruthLoader:
         sources = {}
         with open(self.source_file, "r", encoding="utf-8") as f:
             for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                item = json.loads(line)
-                sources[str(item["source_id"])] = item
+                if stripped := line.strip():
+                    item = json.loads(stripped)
+                    sources[str(item["source_id"])] = item
         return sources
 
     def load_dataset(
@@ -186,7 +184,6 @@ class RAGTruthLoader:
                 examples.append(example)
 
         if limit is not None and len(examples) > limit:
-            import random
             rng = random.Random(random_seed)
             examples = rng.sample(examples, limit)
 

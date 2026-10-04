@@ -14,9 +14,10 @@ env/
 .DS_Store
 Thumbs.db
 
-# Hugging Face & PyTorch caches
+# Hugging Face, PyTorch & Test caches
 .cache/
 hf_cache/
+.pytest_cache/
 
 # Experiment outputs & large prediction dumps
 *.log
@@ -26,3 +27,4 @@ exp/
 # Secrets
 .env
 Notes
+faiss_index_directory/
