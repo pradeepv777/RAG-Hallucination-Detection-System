@@ -28,3 +28,4 @@ exp/
 .env
 Notes
 faiss_index_directory/
+experiments/

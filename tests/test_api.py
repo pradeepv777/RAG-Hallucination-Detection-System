@@ -41,3 +41,20 @@ def test_verify_grounded_answer():
     assert len(data["claims"]) >= 1
     assert data["claims"][0]["verdict"] == "supported"
     assert data["is_faithful"] is True
+
+
+def test_verify_hallucinated_answer():
+    payload = {
+        "question": "Where is the Eiffel Tower?",
+        "context": "The Eiffel Tower is located in Paris, France. It was built in 1889.",
+        "answer": "The Eiffel Tower is located in Tokyo, Japan.",
+        "top_k_evidence": 2,
+    }
+    response = client.post("/verify", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_faithful"] is False
+    assert data["is_hallucinated"] is True
+    assert len(data["claims"]) >= 1
+    assert data["claims"][0]["verdict"] in ["contradicted", "unsupported"]
+

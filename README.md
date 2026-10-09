@@ -315,6 +315,7 @@ curl http://localhost:8000/health
 
 ```
 .
+├── .github/workflows/ci.yml    # Automated CI test suite (Pytest & syntax verification)
 ├── dataset/                    # RAGTruth dataset (response.jsonl, source_info.jsonl)
 ├── dataset_loader.py           # Preprocessing, schema joining & split isolation
 ├── claims.py                   # Atomic claim decomposition & sentence extraction
@@ -324,10 +325,14 @@ curl http://localhost:8000/health
 ├── eval.py                     # Evaluation harness & baseline comparison
 ├── app.py                      # FastAPI REST microservice (POST /verify)
 ├── streamlit_app.py            # Interactive web UI
-├── tests/                      # Pytest suite (23 unit & integration tests)
+├── experiments/                # Error analysis, ablations, 5-fold CV & calibration
+├── baseline/                   # Original reference Llama-2-13B baseline scripts
+├── tests/                      # Pytest suite (30 unit & integration tests)
 ├── benchmark_results.json      # Evaluation metrics
 ├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Containerization
+├── Dockerfile                  # Lightweight containerization (PyTorch CPU wheel)
+├── docker-compose.yml          # Multi-container orchestration (FastAPI + Streamlit)
 └── README.md
 ```
+
 

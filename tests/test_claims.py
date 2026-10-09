@@ -57,3 +57,23 @@ def test_claim_extractor_empty_input():
     extractor = ClaimExtractor()
     assert extractor.extract_claims("") == []
     assert extractor.extract_claims("   \n\n  ") == []
+
+
+def test_decompose_compound_sentence():
+    from claims import decompose_compound_sentence
+    sentence = "The first event took place in 1990; the second event occurred in 1995."
+    clauses = decompose_compound_sentence(sentence)
+    assert len(clauses) == 2
+    assert "1990" in clauses[0]
+    assert "1995" in clauses[1]
+
+
+def test_llm_claim_extractor_fallback():
+    from claims import LLMClaimExtractor
+    # When api_key is None, it should fall back to deterministic ClaimExtractor
+    extractor = LLMClaimExtractor(api_key=None)
+    text = "The earth orbits the sun. The moon orbits the earth."
+    claims = extractor.extract_claims(text)
+    assert len(claims) == 2
+    assert claims[0]["claim_id"] == 0
+
